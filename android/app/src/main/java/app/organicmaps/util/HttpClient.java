@@ -28,6 +28,8 @@ import android.text.TextUtils;
 
 import androidx.annotation.Keep;
 import androidx.annotation.NonNull;
+
+import app.organicmaps.MwmApplication;
 import app.organicmaps.util.log.Logger;
 
 import java.io.BufferedInputStream;
@@ -47,6 +49,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.InflaterInputStream;
+
+import javax.net.ssl.HttpsURLConnection;
 
 // Used by JNI.
 @Keep
@@ -70,6 +74,11 @@ public final class HttpClient
     try
     {
       connection = (HttpURLConnection) new URL(p.url).openConnection();
+
+      // Fix missing root certificates for HTTPS connections on Android 7 and below:
+      // https://community.letsencrypt.org/t/letsencrypt-certificates-fails-on-android-phones-running-android-7-or-older/205686
+      if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.N && p.url.startsWith("https://"))
+        ((HttpsURLConnection) connection).setSSLSocketFactory(MwmApplication.sslSocketFactory);
 
       // NullPointerException, MalformedUrlException, IOException
       // Redirects from http to https or vice versa are not supported by Android implementation.

@@ -5,6 +5,7 @@ import android.util.Base64;
 
 import androidx.annotation.Keep;
 
+import app.organicmaps.MwmApplication;
 import app.organicmaps.util.Constants;
 import app.organicmaps.util.StringUtils;
 import app.organicmaps.util.Utils;
@@ -20,6 +21,8 @@ import java.net.URL;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+
+import javax.net.ssl.HttpsURLConnection;
 
 // Used from JNI.
 @Keep
@@ -131,6 +134,11 @@ class ChunkTask extends AsyncTask<Void, byte[], Integer>
 
       if (isCancelled())
         return CANCELLED;
+
+      // Fix missing root certificates for HTTPS connections on Android 7 and below:
+      // https://community.letsencrypt.org/t/letsencrypt-certificates-fails-on-android-phones-running-android-7-or-older/205686
+      if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.N && mUrl.startsWith("https://"))
+        ((HttpsURLConnection) urlConnection).setSSLSocketFactory(MwmApplication.sslSocketFactory);
 
       urlConnection.setUseCaches(false);
       urlConnection.setConnectTimeout(TIMEOUT_IN_SECONDS * 1000);

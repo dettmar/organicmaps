@@ -2,6 +2,7 @@ package app.organicmaps;
 
 import static app.organicmaps.location.LocationState.LOCATION_TAG;
 
+import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
@@ -20,6 +21,7 @@ import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ProcessLifecycleOwner;
 
 import app.organicmaps.background.OsmUploadWork;
+import app.organicmaps.downloader.Android7RootCertificateWorkaround;
 import app.organicmaps.downloader.DownloaderNotifier;
 import app.organicmaps.bookmarks.data.BookmarkManager;
 import app.organicmaps.display.DisplayManager;
@@ -49,6 +51,8 @@ import app.organicmaps.util.log.LogsManager;
 import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.List;
+
+import javax.net.ssl.SSLSocketFactory;
 
 public class MwmApplication extends Application implements Application.ActivityLifecycleCallbacks
 {
@@ -85,6 +89,9 @@ public class MwmApplication extends Application implements Application.ActivityL
 
   @Nullable
   private WeakReference<Activity> mTopActivity;
+
+  @TargetApi(24)
+  public static SSLSocketFactory sslSocketFactory;
 
   @UiThread
   @Nullable
@@ -141,6 +148,12 @@ public class MwmApplication extends Application implements Application.ActivityL
     super.onCreate();
     Logger.i(TAG, "Initializing application");
     LogsManager.INSTANCE.initFileLogging(this);
+
+    // Fix missing root certificates for HTTPS connections on Android 7 and below:
+    // https://community.letsencrypt.org/t/letsencrypt-certificates-fails-on-android-phones-running-android-7-or-older/205686
+    if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.N)
+      sslSocketFactory = Android7RootCertificateWorkaround.getSslSocketFactory(this,
+          new int[]{R.raw.isrgrootx1, R.raw.globalsignr4, R.raw.gtsrootr1, R.raw.gtsrootr2, R.raw.gtsrootr3, R.raw.gtsrootr4});
 
     // Set configuration directory as early as possible.
     // Other methods may explicitly use Config, which requires settingsDir to be set.
