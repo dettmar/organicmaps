@@ -8,6 +8,10 @@
 #include "platform/local_country_file_utils.hpp"
 #include "platform/network_policy_ios.h"
 
+#include "storage/storage.hpp"
+#include "storage/storage_helpers.hpp"
+#include "storage/country_info_getter.hpp"
+
 @implementation MWMFrameworkHelper
 
 + (void)processFirstLaunch:(BOOL)hasLocation {
@@ -163,7 +167,11 @@
 }
 
 + (BOOL)canEditMap {
-  return GetFramework().CanEditMap();
+  auto &f = GetFramework();
+  auto &position = f.GetViewportCenter();
+  auto &storage = f.GetStorage();
+  auto &country = f.GetCountryInfoGetter();
+  return IsPointCoveredByDownloadedMaps(position, storage, country) && storage.HasLatestVersion(country.GetRegionCountryId(position));
 }
 
 + (void)showOnMap:(MWMMarkGroupID)categoryId {
